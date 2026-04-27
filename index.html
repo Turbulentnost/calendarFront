@@ -2,16 +2,11 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; img-src 'self' data: http://192.168.1.157:8001 http://127.0.0.1:8001 http://localhost:8001; connect-src 'self' http://192.168.1.157:8001 http://127.0.0.1:8001 http://localhost:8001"
-    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TurboTasks</title>
-    <link rel="stylesheet" href="styles/admin-panel.css" />
   </head>
   <body>
-    <div class="app"></div>
-    <script type="module" src="renderer.js"></script>
+    <div class="app" id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { API_V1 } from "./config.js";
+import { API_V1 } from "../config.js";
 import { getToken } from "./auth.js";
 
 /**
@@ -66,15 +66,4 @@ export function loginRequest(nickname, password) {
 
 export function fetchMe() {
   return apiRequest("auth/me/", { method: "GET" });
-}
-
-export function fetchUsers() {
-  return apiRequest("users/", { method: "GET" });
-}
-
-/**
- * @param {FormData} formData
- */
-export function createUser(formData) {
-  return apiRequest("users/", { method: "POST", body: formData });
 }

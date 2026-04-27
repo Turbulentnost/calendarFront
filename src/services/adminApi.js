@@ -1,5 +1,5 @@
-import { API_BASE } from "../../services/config.js";
-import { getToken } from "../../services/auth.js";
+import { API_BASE } from "../config.js";
+import { getToken } from "./auth.js";
 
 function buildQuery(params = {}) {
   const qs = new URLSearchParams();
@@ -30,6 +30,8 @@ function extractErrorMessage(data) {
   return "Ошибка запроса";
 }
 
+const adminPrefix = () => (API_BASE ? `${API_BASE}/api/admin` : "/api/admin");
+
 async function request(path, options = {}) {
   const headers = new Headers(options.headers || {});
   const token = getToken();
@@ -48,7 +50,7 @@ async function request(path, options = {}) {
     headers.delete("Content-Type");
   }
 
-  const res = await fetch(`${API_BASE}/api/admin/${path}`, {
+  const res = await fetch(`${adminPrefix()}/${path}`, {
     method: options.method || "GET",
     headers,
     body,
@@ -72,10 +74,6 @@ async function request(path, options = {}) {
 
 export function getUsers(params) {
   return request(`users/${buildQuery(params)}`);
-}
-
-export function getUser(id) {
-  return request(`users/${id}/`);
 }
 
 export function createUser(payload) {

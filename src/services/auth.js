@@ -27,8 +27,3 @@ export function getStoredUser() {
     return null;
   }
 }
-
-export function isStaff() {
-  const u = getStoredUser();
-  return Boolean(u?.is_staff);
-}
