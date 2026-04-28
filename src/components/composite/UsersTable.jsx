@@ -1,4 +1,9 @@
 import { useState } from "react";
+import { Button } from "../ui/Button.jsx";
+import { Badge } from "../ui/Badge.jsx";
+import { Panel } from "../ui/Panel.jsx";
+import { Input } from "../ui/Input.jsx";
+import { Select } from "../ui/Select.jsx";
 
 function avatarInitials(user) {
   const f = (user.first_name || "").trim();
@@ -32,34 +37,25 @@ export function UsersTable({
   }
 
   return (
-    <section className="tt-panel">
+    <Panel>
       <div className="tt-toolbar">
         <div className="tt-toolbar__left">
-          <button
-            className="tt-btn tt-btn--primary"
-            type="button"
-            onClick={onOpenCreate}
-          >
+          <Button variant="primary" type="button" onClick={onOpenCreate}>
             + Добавить пользователя
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className={[
-              "tt-btn",
-              "tt-btn--filter",
-              filtersOpen && "tt-btn--filter-active",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+            variant="filter"
+            filterActive={filtersOpen}
             onClick={() => setFiltersOpen((o) => !o)}
           >
             Фильтры
             <span className="tt-btn__chevron">{filtersOpen ? "▲" : "▼"}</span>
-          </button>
+          </Button>
         </div>
         <div className="tt-search">
           <span className="tt-search__icon">🔍</span>
-          <input
+          <Input
             type="text"
             value={filters.q}
             placeholder="Поиск: nickname / имя / фамилия"
@@ -71,35 +67,31 @@ export function UsersTable({
 
       {filtersOpen && (
         <div className="tt-filters">
-          <select
+          <Select
             value={filters.role}
             onChange={(e) => updateFilter("role", e.target.value)}
           >
             <option value="">Все роли</option>
             <option value="0">Суперадмин</option>
             <option value="1">Админ</option>
-          </select>
-          <input
+          </Select>
+          <Input
             type="text"
             value={filters.department}
             placeholder="Фильтр по отделу"
             onChange={(e) => updateFilter("department", e.target.value)}
             onKeyUp={(e) => e.key === "Enter" && onApplyFilters()}
           />
-          <input
+          <Input
             type="text"
             value={filters.job_title}
             placeholder="Фильтр по должности"
             onChange={(e) => updateFilter("job_title", e.target.value)}
             onKeyUp={(e) => e.key === "Enter" && onApplyFilters()}
           />
-          <button
-            className="tt-btn tt-btn--apply"
-            type="button"
-            onClick={onApplyFilters}
-          >
+          <Button variant="apply" type="button" onClick={onApplyFilters}>
             Применить фильтры
-          </button>
+          </Button>
         </div>
       )}
 
@@ -152,18 +144,16 @@ export function UsersTable({
                     <div className="tt-user-sub">{user.job_title || "—"}</div>
                   </td>
                   <td>
-                    {[user.first_name, user.last_name].filter(Boolean).join(" ") ||
-                      "—"}
+                    {[user.first_name, user.last_name]
+                      .filter(Boolean)
+                      .join(" ") || "—"}
                   </td>
                   <td>
-                    <span
-                      className={[
-                        "tt-badge",
-                        user.role === 0 ? "tt-badge--danger" : "tt-badge--primary",
-                      ].join(" ")}
+                    <Badge
+                      variant={user.role === 0 ? "danger" : "primary"}
                     >
                       {user.role === 0 ? "Суперадмин" : "Админ"}
-                    </span>
+                    </Badge>
                   </td>
                   <td>{user.department || "—"}</td>
                   <td>{user.job_title || "—"}</td>
@@ -227,6 +217,6 @@ export function UsersTable({
           </button>
         </div>
       </div>
-    </section>
+    </Panel>
   );
 }

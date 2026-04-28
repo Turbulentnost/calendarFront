@@ -1,4 +1,9 @@
 import { useEffect, useState } from "react";
+import { Button } from "../ui/Button.jsx";
+import { Field } from "../ui/Field.jsx";
+import { Input } from "../ui/Input.jsx";
+import { Select } from "../ui/Select.jsx";
+import { Modal } from "./Modal.jsx";
 
 const emptyForm = {
   nickname: "",
@@ -55,20 +60,8 @@ export function UserModal({ open, user, onClose, onSave }) {
     onSave(fd);
   }
 
-  if (!open) return null;
-
   return (
-    <div
-      className="tt-modal-backdrop"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="tt-modal"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
+    <Modal open={open} onClose={onClose}>
         <div className="tt-modal-header">
           <div>
             <h3>
@@ -93,18 +86,16 @@ export function UserModal({ open, user, onClose, onSave }) {
           <div className="tt-modal-section">
             <div className="tt-modal-section__title">Доступ</div>
             <div className="tt-modal-grid">
-              <label>
-                Никнейм
-                <input
+              <Field label="Никнейм">
+                <Input
                   value={form.nickname}
                   onChange={(e) => setField("nickname", e.target.value)}
                   required
                   placeholder="Например: ivanov"
                 />
-              </label>
-              <label>
-                Пароль
-                <input
+              </Field>
+              <Field label="Пароль">
+                <Input
                   type="password"
                   value={form.password}
                   onChange={(e) => setField("password", e.target.value)}
@@ -112,55 +103,50 @@ export function UserModal({ open, user, onClose, onSave }) {
                     user ? "Оставьте пустым, чтобы не менять" : "Введите пароль"
                   }
                 />
-              </label>
-              <label>
-                Роль
-                <select
+              </Field>
+              <Field label="Роль">
+                <Select
                   value={form.role}
                   onChange={(e) => setField("role", e.target.value)}
                 >
                   <option value="0">Суперадмин</option>
                   <option value="1">Админ</option>
-                </select>
-              </label>
+                </Select>
+              </Field>
             </div>
           </div>
 
           <div className="tt-modal-section">
             <div className="tt-modal-section__title">Профиль</div>
             <div className="tt-modal-grid">
-              <label>
-                Имя
-                <input
+              <Field label="Имя">
+                <Input
                   value={form.first_name}
                   onChange={(e) => setField("first_name", e.target.value)}
                   placeholder="Имя"
                 />
-              </label>
-              <label>
-                Фамилия
-                <input
+              </Field>
+              <Field label="Фамилия">
+                <Input
                   value={form.last_name}
                   onChange={(e) => setField("last_name", e.target.value)}
                   placeholder="Фамилия"
                 />
-              </label>
-              <label>
-                Отдел
-                <input
+              </Field>
+              <Field label="Отдел">
+                <Input
                   value={form.department}
                   onChange={(e) => setField("department", e.target.value)}
                   placeholder="Например: Разработка"
                 />
-              </label>
-              <label>
-                Должность
-                <input
+              </Field>
+              <Field label="Должность">
+                <Input
                   value={form.job_title}
                   onChange={(e) => setField("job_title", e.target.value)}
                   placeholder="Например: Backend developer"
                 />
-              </label>
+              </Field>
             </div>
           </div>
 
@@ -179,18 +165,13 @@ export function UserModal({ open, user, onClose, onSave }) {
         </div>
 
         <div className="tt-modal-actions">
-          <button type="button" className="tt-btn" onClick={onClose}>
+          <Button variant="default" onClick={onClose}>
             Отмена
-          </button>
-          <button
-            type="button"
-            className="tt-btn tt-btn--primary"
-            onClick={submit}
-          >
+          </Button>
+          <Button variant="primary" onClick={submit}>
             {user ? "Сохранить изменения" : "Добавить пользователя"}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

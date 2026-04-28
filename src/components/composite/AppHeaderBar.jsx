@@ -1,7 +1,16 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PATHS } from "../../utils/paths.js";
 
-export function HeaderBar({ user, title, onLogout, onToggleSidebar }) {
+export function AppHeaderBar({
+  user,
+  title,
+  activeProject,
+  onLogout,
+  onToggleSidebar,
+}) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const initials = useMemo(() => {
     const src = user?.nickname || "TT";
     return src.slice(0, 2).toUpperCase();
@@ -19,6 +28,12 @@ export function HeaderBar({ user, title, onLogout, onToggleSidebar }) {
     onLogout();
   }
 
+  function openProfile(e) {
+    e.stopPropagation();
+    setOpen(false);
+    navigate(PATHS.PROFILE);
+  }
+
   return (
     <header className="tt-header">
       <div className="tt-header__left">
@@ -29,16 +44,16 @@ export function HeaderBar({ user, title, onLogout, onToggleSidebar }) {
         >
           ☰
         </button>
-        <div className="tt-header__title">{title}</div>
+        <div className="tt-header__heading">
+          <div className="tt-header__title">{title}</div>
+          {activeProject && (
+            <div className="tt-header__project">
+              Активный проект: {activeProject.title || activeProject.login}
+            </div>
+          )}
+        </div>
       </div>
       <div className="tt-header__right">
-        <button
-          className="tt-quick-logout"
-          type="button"
-          onClick={doLogout}
-        >
-          Выйти
-        </button>
         <div
           className="tt-user-menu"
           onClick={() => setOpen((o) => !o)}
@@ -55,7 +70,7 @@ export function HeaderBar({ user, title, onLogout, onToggleSidebar }) {
           <div className="tt-user-menu__caret">▾</div>
           {open && (
             <div className="tt-user-menu__dropdown">
-              <button type="button" onClick={(e) => e.stopPropagation()}>
+              <button type="button" onClick={openProfile}>
                 Мой профиль
               </button>
               <button

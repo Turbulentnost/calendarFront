@@ -1,4 +1,11 @@
 import { useState } from "react";
+import { Button } from "../ui/Button.jsx";
+import { Field } from "../ui/Field.jsx";
+import { Input } from "../ui/Input.jsx";
+import { Select } from "../ui/Select.jsx";
+import { Textarea } from "../ui/Textarea.jsx";
+import { Panel } from "../ui/Panel.jsx";
+import { TaskCard } from "../ui/TaskCard.jsx";
 
 const emptyForm = {
   title: "",
@@ -37,28 +44,26 @@ export function TaskComposer({
     p === "high" ? "Высокий" : p === "low" ? "Низкий" : "Средний";
 
   return (
-    <section className="tt-panel">
+    <Panel>
       <div className="tt-section-head">
         <div>
-          <h2 className="tt-section-title">Постановка задачи</h2>
+          <h2 className="tt-section-title">Задачи</h2>
           <p className="tt-section-subtitle">
-            Быстрый блок для назначения новой задачи сотруднику.
+            Создавайте и отслеживайте задачи активного проекта.
           </p>
         </div>
       </div>
       <div className="tt-task-layout">
         <div className="tt-task-grid">
-          <label>
-            Постановщик
-            <input
+          <Field label="Постановщик">
+            <Input
               value={currentUser ? currentUser.nickname : ""}
               disabled
               readOnly
             />
-          </label>
-          <label>
-            Исполнитель
-            <select
+          </Field>
+          <Field label="Исполнитель">
+            <Select
               value={form.assignee}
               onChange={(e) => setField("assignee", e.target.value)}
             >
@@ -69,44 +74,40 @@ export function TaskComposer({
                   {u.department ? ` · ${u.department}` : ""}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="tt-task-grid__full">
-            Название задачи
-            <input
+            </Select>
+          </Field>
+          <Field label="Название задачи" className="tt-task-grid__full">
+            <Input
               value={form.title}
               onChange={(e) => setField("title", e.target.value)}
               placeholder="Например: Подготовить отчёт по спринту"
             />
-          </label>
-          <label>
-            Приоритет
-            <select
+          </Field>
+          <Field label="Приоритет">
+            <Select
               value={form.priority}
               onChange={(e) => setField("priority", e.target.value)}
             >
               <option value="low">Низкий</option>
               <option value="medium">Средний</option>
               <option value="high">Высокий</option>
-            </select>
-          </label>
-          <label>
-            Дедлайн
-            <input
+            </Select>
+          </Field>
+          <Field label="Дедлайн">
+            <Input
               type="date"
               value={form.deadline}
               onChange={(e) => setField("deadline", e.target.value)}
             />
-          </label>
-          <label className="tt-task-grid__full">
-            Описание
-            <textarea
+          </Field>
+          <Field label="Описание" className="tt-task-grid__full">
+            <Textarea
               rows={6}
               value={form.description}
               onChange={(e) => setField("description", e.target.value)}
               placeholder="Опишите задачу, критерии готовности и детали"
             />
-          </label>
+          </Field>
         </div>
         <div className="tt-task-feed">
           <div className="tt-task-feed__title">Последние задачи</div>
@@ -118,32 +119,33 @@ export function TaskComposer({
           )}
           {!loading &&
             tasks.map((task) => (
-              <div key={task.id} className="tt-task-card">
-                <div className="tt-task-card__title">{task.title}</div>
-                <div className="tt-task-card__meta">
-                  {task.assignee_nickname}
-                  {task.assignee_department
+              <TaskCard
+                key={task.id}
+                title={task.title}
+                meta={
+                  task.assignee_nickname +
+                  (task.assignee_department
                     ? ` · ${task.assignee_department}`
-                    : ""}
-                </div>
-                <div className="tt-task-card__sub">
-                  {priorityLabel(task.priority)}
-                  {task.deadline ? ` · до ${task.deadline}` : null}
-                </div>
-              </div>
+                    : "")
+                }
+                sub={
+                  priorityLabel(task.priority) +
+                  (task.deadline ? ` · до ${task.deadline}` : "")
+                }
+              />
             ))}
         </div>
       </div>
       <div className="tt-modal-actions">
-        <button
-          className="tt-btn tt-btn--primary"
+        <Button
+          variant="primary"
           type="button"
           disabled={!form.title.trim() || !form.assignee}
           onClick={submit}
         >
           Создать задачу
-        </button>
+        </Button>
       </div>
-    </section>
+    </Panel>
   );
 }

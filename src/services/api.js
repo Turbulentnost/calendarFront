@@ -64,6 +64,20 @@ export function loginRequest(nickname, password) {
   });
 }
 
+export function registerRequest(payload) {
+  return apiRequest("auth/register/", {
+    method: "POST",
+    json: payload,
+  });
+}
+
 export function fetchMe() {
   return apiRequest("auth/me/", { method: "GET" });
+}
+
+export function updateProfileRequest(payload) {
+  return apiRequest("auth/me/", {
+    method: "PATCH",
+    json: payload,
+  });
 }
