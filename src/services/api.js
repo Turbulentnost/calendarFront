@@ -81,3 +81,13 @@ export function updateProfileRequest(payload) {
     json: payload,
   });
 }
+
+export function uploadProfilePhotoRequest(file, method = "POST") {
+  const body = new FormData();
+  body.append("photo", file);
+  return apiRequest("auth/me/photo/", { method, body });
+}
+
+export function deleteProfilePhotoRequest() {
+  return apiRequest("auth/me/photo/", { method: "DELETE" });
+}

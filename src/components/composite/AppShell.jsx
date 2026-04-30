@@ -11,7 +11,6 @@ import { cn } from "../../utils/cn.js";
  */
 export function AppShell({
   currentUser,
-  activeProject,
   isMobile,
   sidebarOpen,
   setSidebarOpen,
@@ -44,7 +43,6 @@ export function AppShell({
   updateFilters,
   createTaskDraft,
   saveProfile,
-  handleProjectLogin,
   toggleSidebar,
   toast,
 }) {
@@ -64,7 +62,7 @@ export function AppShell({
           <AppHeaderBar
             user={currentUser}
             title={pageTitle}
-            activeProject={activeProject}
+            onAddClick={() => toast("...", "info")}
             onLogout={doLogout}
             onToggleSidebar={toggleSidebar}
           />
@@ -95,10 +93,6 @@ export function AppShell({
             onReset: askReset,
             onDelete: askDelete,
             onChangePage: (p) => void loadUsers(p),
-          }}
-          projectsPageProps={{
-            onNotify: toast,
-            onProjectLogin: handleProjectLogin,
           }}
           tasksPageProps={{
             users,

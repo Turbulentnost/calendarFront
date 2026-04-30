@@ -3,7 +3,6 @@ import { LoginPage } from "./pages/LoginPage.jsx";
 import { RegisterPage } from "./pages/RegisterPage.jsx";
 import { UsersPage } from "./pages/UsersPage.jsx";
 import { TasksPage } from "./pages/TasksPage.jsx";
-import { ProjectsPage } from "./pages/ProjectsPage.jsx";
 import { ProfilePage } from "./pages/ProfilePage.jsx";
 import { WorkspaceLayoutPage } from "./pages/WorkspaceLayoutPage.jsx";
 import { PATHS } from "./utils/paths.js";
@@ -19,7 +18,6 @@ export function AppRoutes({
   onLogin,
   toast,
   usersPageProps,
-  projectsPageProps,
   tasksPageProps,
   profilePageProps,
 }) {
@@ -69,10 +67,6 @@ export function AppRoutes({
         <Route
           path="users"
           element={<UsersPage {...usersPageProps} />}
-        />
-        <Route
-          path="projects"
-          element={<ProjectsPage {...projectsPageProps} />}
         />
         <Route
           path="tasks"

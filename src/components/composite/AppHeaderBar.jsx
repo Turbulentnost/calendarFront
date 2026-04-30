@@ -5,7 +5,7 @@ import { PATHS } from "../../utils/paths.js";
 export function AppHeaderBar({
   user,
   title,
-  activeProject,
+  onAddClick,
   onLogout,
   onToggleSidebar,
 }) {
@@ -15,6 +15,8 @@ export function AppHeaderBar({
     const src = user?.nickname || "TT";
     return src.slice(0, 2).toUpperCase();
   }, [user?.nickname]);
+  const avatarUrl =
+    user?.photo_url || user?.photo || user?.avatar_url || user?.avatar || "";
 
   const roleLabel =
     user?.role === 0 || user?.is_superuser
@@ -46,21 +48,28 @@ export function AppHeaderBar({
         </button>
         <div className="tt-header__heading">
           <div className="tt-header__title">{title}</div>
-          {activeProject && (
-            <div className="tt-header__project">
-              Активный проект: {activeProject.title || activeProject.login}
-            </div>
-          )}
         </div>
       </div>
       <div className="tt-header__right">
+        <button
+          className="tt-header-add-button"
+          type="button"
+          onClick={onAddClick}
+        >
+          <span className="tt-header-add-button__icon">+</span>
+          <span>Войти в проект</span>
+        </button>
         <div
           className="tt-user-menu"
           onClick={() => setOpen((o) => !o)}
           role="button"
           tabIndex={0}
         >
-          <div className="tt-user-menu__avatar">{initials}</div>
+          {avatarUrl ? (
+            <img className="tt-user-menu__avatar" src={avatarUrl} alt="" />
+          ) : (
+            <div className="tt-user-menu__avatar">{initials}</div>
+          )}
           <div className="tt-user-menu__meta">
             <div className="tt-user-menu__name">
               {user?.nickname || "admin"}

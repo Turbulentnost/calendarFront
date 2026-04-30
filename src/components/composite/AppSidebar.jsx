@@ -50,14 +50,6 @@ export function AppSidebar({ open, mobile, onClose }) {
             className={menuClass}
             end
             onClick={handleNavigate}
-            to={PATHS.PROJECTS}
-          >
-            Проекты
-          </NavLink>
-          <NavLink
-            className={menuClass}
-            end
-            onClick={handleNavigate}
             to={PATHS.TASKS}
           >
             Задачи

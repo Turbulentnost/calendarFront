@@ -7,13 +7,10 @@ import {
   setSession,
 } from "../services/auth.js";
 import {
-  clearProjectSession,
-  getStoredProject,
-  setProjectSession,
-} from "../utils/projectSession.js";
-import {
+  deleteProfilePhotoRequest,
   fetchMe,
   loginRequest,
+  uploadProfilePhotoRequest,
   updateProfileRequest,
 } from "../services/api.js";
 import {
@@ -50,7 +47,6 @@ export function useTurboApp() {
   const location = useLocation();
 
   const [currentUser, setCurrentUser] = useState(getStoredUser);
-  const [activeProject, setActiveProject] = useState(getStoredProject);
   const [loading, setLoading] = useState(false);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [users, setUsers] = useState([]);
@@ -95,6 +91,14 @@ export function useTurboApp() {
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 2600);
+  }, []);
+
+  const syncCurrentUser = useCallback(async () => {
+    if (!getToken()) return null;
+    const me = await fetchMe();
+    setSession(getToken() || "", me);
+    setCurrentUser(me);
+    return me;
   }, []);
 
   const canManage = useCallback((target) => {
@@ -172,10 +176,8 @@ export function useTurboApp() {
     (async () => {
       if (!getStoredUser()) return;
       try {
-        const me = await fetchMe();
+        await syncCurrentUser();
         if (cancelled) return;
-        setSession(getToken() || "", me);
-        setCurrentUser(me);
       } catch {
         // ignore stale token
       }
@@ -217,7 +219,45 @@ export function useTurboApp() {
     return () => {
       cancelled = true;
     };
-  }, [toast]);
+  }, [syncCurrentUser, toast]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!getToken() || !currentUser) return;
+      try {
+        await syncCurrentUser();
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+
+      if (location.pathname === PATHS.USERS) {
+        await loadUsers(pagination.page);
+        return;
+      }
+
+      if (location.pathname === PATHS.TASKS) {
+        setTasksLoading(true);
+        try {
+          const tList = await getTasks();
+          if (!cancelled) {
+            setTasks(tList);
+          }
+        } catch {
+          // Navigation sync should not interrupt the page.
+        } finally {
+          if (!cancelled) {
+            setTasksLoading(false);
+          }
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname]);
 
   const openCreate = useCallback(() => {
     setEditingUser(null);
@@ -314,9 +354,7 @@ export function useTurboApp() {
 
   const doLogout = useCallback(() => {
     clearSession();
-    clearProjectSession();
     setCurrentUser(null);
-    setActiveProject(null);
     setUsers([]);
     setTasks([]);
     toast("Вы вышли из системы", "info");
@@ -359,29 +397,43 @@ export function useTurboApp() {
   );
 
   const saveProfile = useCallback(
-    async (payload) => {
+    async (payload, photoChange = null) => {
       try {
+        let nextUser = currentUser;
         const data = await updateProfileRequest(payload);
-        const nextUser = data?.user || data || { ...currentUser, ...payload };
-        setSession(getToken() || "", nextUser);
-        setCurrentUser(nextUser);
+        nextUser = data?.user || data || { ...nextUser, ...payload };
+
+        if (photoChange?.action === "delete") {
+          const photoData = await deleteProfilePhotoRequest();
+          nextUser = photoData?.user || photoData || {
+            ...nextUser,
+            photo: null,
+            photo_url: null,
+          };
+        }
+
+        if (photoChange?.action === "upload" && photoChange.file) {
+          const photoData = await uploadProfilePhotoRequest(
+            photoChange.file,
+            photoChange.method || "POST"
+          );
+          nextUser = photoData?.user || photoData || nextUser;
+        }
+
+        try {
+          nextUser = await syncCurrentUser();
+        } catch {
+          setSession(getToken() || "", nextUser);
+          setCurrentUser(nextUser);
+        }
+        await refreshAll(pagination.page);
         toast("Профиль обновлён", "success");
       } catch (e) {
         toast(`Ошибка обновления профиля: ${e.message}`, "error");
         throw e;
       }
     },
-    [currentUser, toast]
-  );
-
-  const handleProjectLogin = useCallback(
-    (data) => {
-      const project = data?.project || null;
-      setProjectSession(data?.project_token || "", project);
-      setActiveProject(project);
-      navigate(PATHS.TASKS);
-    },
-    [navigate]
+    [currentUser, pagination.page, refreshAll, syncCurrentUser, toast]
   );
 
   const toggleSidebar = useCallback(() => {
@@ -391,9 +443,6 @@ export function useTurboApp() {
   }, [isMobile]);
 
   const pageTitle = useMemo(() => {
-    if (location.pathname === PATHS.PROJECTS) {
-      return "Проекты";
-    }
     if (location.pathname === PATHS.TASKS) {
       return "Задачи";
     }
@@ -405,7 +454,6 @@ export function useTurboApp() {
 
   return {
     currentUser,
-    activeProject,
     isMobile,
     sidebarOpen,
     setSidebarOpen,
@@ -438,7 +486,6 @@ export function useTurboApp() {
     updateFilters,
     createTaskDraft,
     saveProfile,
-    handleProjectLogin,
     toggleSidebar,
     toast,
   };

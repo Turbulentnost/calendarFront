@@ -74,14 +74,14 @@ export function RegisterPage({ onNotify }) {
     <Modal
       open
       onClose={close}
-      className="tt-modal--project-glass tt-modal--register"
+      className="tt-modal--glass tt-modal--register"
       backdropClassName="tt-modal-backdrop--glass"
     >
       <form onSubmit={handleSubmit}>
         <div className="tt-modal-header">
           <div>
             <h3>Регистрация</h3>
-            <p>Создайте аккаунт для работы с проектами и задачами.</p>
+            <p>Создайте аккаунт для работы с задачами.</p>
           </div>
           <button
             type="button"

@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 
 /**
- * Контент дочерних маршрутов /users, /projects, /tasks (см. appRouter).
+ * Контент дочерних маршрутов /users, /tasks (см. appRouter).
  */
 export function WorkspaceLayoutPage() {
   return (
