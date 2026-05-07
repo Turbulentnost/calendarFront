@@ -82,6 +82,13 @@ export function updateProfileRequest(payload) {
   });
 }
 
+export function changePasswordRequest(payload) {
+  return apiRequest("auth/change-password/", {
+    method: "POST",
+    json: payload,
+  });
+}
+
 export function uploadProfilePhotoRequest(file, method = "POST") {
   const body = new FormData();
   body.append("photo", file);

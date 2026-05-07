@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Modal } from "../components/composite/Modal.jsx";
 import { Button } from "../components/ui/Button.jsx";
 import { Input } from "../components/ui/Input.jsx";
-import { registerRequest } from "../services/api.js";
 import { PATHS } from "../utils/paths.js";
 
 const EMPTY = {
@@ -23,7 +22,7 @@ function FloatingField({ label, className, ...inputProps }) {
   );
 }
 
-export function RegisterPage({ onNotify }) {
+export function RegisterPage({ onNotify, onRegister }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
@@ -55,16 +54,16 @@ export function RegisterPage({ onNotify }) {
 
     setSaving(true);
     try {
-      await registerRequest({
+      await onRegister?.({
         nickname: form.nickname.trim(),
         password: form.password,
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
       });
-      onNotify?.("Регистрация выполнена. Теперь можно войти", "success");
-      navigate(PATHS.LOGIN, { replace: true });
     } catch (e) {
-      onNotify?.(`Ошибка регистрации: ${e.message}`, "error");
+      if (!onRegister) {
+        onNotify?.(`Ошибка регистрации: ${e.message}`, "error");
+      }
     } finally {
       setSaving(false);
     }

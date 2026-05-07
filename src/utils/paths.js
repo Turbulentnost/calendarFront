@@ -7,5 +7,8 @@ export const PATHS = {
   REGISTER: "/register",
   USERS: "/users",
   TASKS: "/tasks",
+  CREATE_TASK: "/tasks/create",
+  PROJECTS: "/projects",
+  ALL_PROJECTS: "/projects/all",
   PROFILE: "/profile",
 };

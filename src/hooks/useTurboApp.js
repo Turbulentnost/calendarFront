@@ -7,9 +7,11 @@ import {
   setSession,
 } from "../services/auth.js";
 import {
+  changePasswordRequest,
   deleteProfilePhotoRequest,
   fetchMe,
   loginRequest,
+  registerRequest,
   uploadProfilePhotoRequest,
   updateProfileRequest,
 } from "../services/api.js";
@@ -23,6 +25,15 @@ import {
   resetPassword,
   updateUser,
 } from "../services/adminApi.js";
+import {
+  deleteProject,
+  getAllProjects,
+  getProjects,
+} from "../services/calendarApi.js";
+import {
+  canViewAllProjectsPage,
+  canViewUsersPage,
+} from "../utils/access.js";
 import { PATHS } from "../utils/paths.js";
 import { buildUserListQuery } from "../utils/buildUserListQuery.js";
 
@@ -49,8 +60,12 @@ export function useTurboApp() {
   const [currentUser, setCurrentUser] = useState(getStoredUser);
   const [loading, setLoading] = useState(false);
   const [tasksLoading, setTasksLoading] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [allProjectsLoading, setAllProjectsLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [allProjects, setAllProjects] = useState([]);
   const [filters, setFilters] = useState(() => ({ ...initialFilters }));
   const [pagination, setPagination] = useState({
     page: 1,
@@ -114,6 +129,7 @@ export function useTurboApp() {
 
   const loadUsers = useCallback(
     async (page = pagination.page) => {
+      if (!canViewUsersPage(currentUser)) return;
       setLoading(true);
       try {
         const data = await getUsers(
@@ -126,36 +142,52 @@ export function useTurboApp() {
         setLoading(false);
       }
     },
-    [filters, pagination.page, pagination.page_size, toast]
+    [currentUser, filters, pagination.page, pagination.page_size, toast]
   );
 
   const refreshAll = useCallback(
-    async (page = 1) => {
-      setLoading(true);
+    async (page = 1, actor = currentUser) => {
+      const canLoadAdminData = canViewUsersPage(actor);
+      if (canLoadAdminData) {
+        setLoading(true);
+      }
       setTasksLoading(true);
+      setProjectsLoading(true);
       try {
-        const [uData, sData, tList] = await Promise.all([
-          getUsers(
-            buildUserListQuery(filters, page, pagination.page_size)
-          ),
-          getStats(),
-          getTasks(),
-        ]);
-        applyUserListResponse(uData, setUsers, setPagination);
-        setStats({
-          total_users: sData.total_users || 0,
-          admins: sData.admins || 0,
-          superadmins: sData.superadmins || 0,
-        });
-        setTasks(tList);
+        const pList = await getProjects();
+        setProjects(Array.isArray(pList) ? pList : []);
+
+        if (canLoadAdminData) {
+          const [uData, sData, tList] = await Promise.all([
+            getUsers(
+              buildUserListQuery(filters, page, pagination.page_size)
+            ),
+            getStats(),
+            getTasks(),
+          ]);
+          applyUserListResponse(uData, setUsers, setPagination);
+          setStats({
+            total_users: sData.total_users || 0,
+            admins: sData.admins || 0,
+            superadmins: sData.superadmins || 0,
+          });
+          setTasks(tList);
+        } else {
+          setUsers([]);
+          setTasks([]);
+          setStats({ total_users: 0, admins: 0, superadmins: 0 });
+        }
       } catch (e) {
         toast(`Ошибка: ${e.message}`, "error");
       } finally {
-        setLoading(false);
+        if (canLoadAdminData) {
+          setLoading(false);
+        }
         setTasksLoading(false);
+        setProjectsLoading(false);
       }
     },
-    [filters, pagination.page_size, toast]
+    [currentUser, filters, pagination.page_size, toast]
   );
 
   useEffect(() => {
@@ -175,44 +207,78 @@ export function useTurboApp() {
     let cancelled = false;
     (async () => {
       if (!getStoredUser()) return;
+      let actor = null;
       try {
-        await syncCurrentUser();
+        actor = await syncCurrentUser();
         if (cancelled) return;
       } catch {
         // ignore stale token
       }
       if (cancelled) return;
       if (!getToken()) return;
-      setLoading(true);
+      const canLoadAdminData = canViewUsersPage(actor);
+      if (canLoadAdminData) {
+        setLoading(true);
+      }
       setTasksLoading(true);
+      setProjectsLoading(true);
       try {
-        const [uData, sData, tList] = await Promise.all([
-          getUsers(
-            buildUserListQuery(
-              initialFilters,
-              1,
-              INITIAL_PAGE_SIZE
-            )
-          ),
-          getStats(),
-          getTasks(),
-        ]);
+        const pList = await getProjects();
         if (cancelled) return;
-        applyUserListResponse(uData, setUsers, setPagination);
-        setStats({
-          total_users: sData.total_users || 0,
-          admins: sData.admins || 0,
-          superadmins: sData.superadmins || 0,
-        });
-        setTasks(tList);
+        setProjects(Array.isArray(pList) ? pList : []);
+
+        if (canLoadAdminData) {
+          const [uData, sData, tList] = await Promise.all([
+            getUsers(
+              buildUserListQuery(
+                initialFilters,
+                1,
+                INITIAL_PAGE_SIZE
+              )
+            ),
+            getStats(),
+            getTasks(),
+          ]);
+          if (cancelled) return;
+          applyUserListResponse(uData, setUsers, setPagination);
+          setStats({
+            total_users: sData.total_users || 0,
+            admins: sData.admins || 0,
+            superadmins: sData.superadmins || 0,
+          });
+          setTasks(tList);
+        } else {
+          setUsers([]);
+          setTasks([]);
+          setStats({ total_users: 0, admins: 0, superadmins: 0 });
+        }
+
+        if (
+          location.pathname === PATHS.ALL_PROJECTS &&
+          canViewAllProjectsPage(actor)
+        ) {
+          setAllProjectsLoading(true);
+          try {
+            const allProjectList = await getAllProjects();
+            if (cancelled) return;
+            setAllProjects(Array.isArray(allProjectList) ? allProjectList : []);
+          } finally {
+            if (!cancelled) {
+              setAllProjectsLoading(false);
+            }
+          }
+        }
       } catch (e) {
         if (!cancelled) {
           toast(`Ошибка: ${e.message}`, "error");
         }
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          if (canLoadAdminData) {
+            setLoading(false);
+          }
           setTasksLoading(false);
+          setProjectsLoading(false);
         }
       }
     })();
@@ -233,22 +299,42 @@ export function useTurboApp() {
       if (cancelled) return;
 
       if (location.pathname === PATHS.USERS) {
+        if (!canViewUsersPage(currentUser)) return;
         await loadUsers(pagination.page);
         return;
       }
 
-      if (location.pathname === PATHS.TASKS) {
-        setTasksLoading(true);
+      if (location.pathname === PATHS.PROJECTS) {
+        setProjectsLoading(true);
         try {
-          const tList = await getTasks();
+          const pList = await getProjects();
           if (!cancelled) {
-            setTasks(tList);
+            setProjects(Array.isArray(pList) ? pList : []);
           }
         } catch {
           // Navigation sync should not interrupt the page.
         } finally {
           if (!cancelled) {
-            setTasksLoading(false);
+            setProjectsLoading(false);
+          }
+        }
+      }
+
+      if (location.pathname === PATHS.ALL_PROJECTS) {
+        if (!canViewAllProjectsPage(currentUser)) return;
+        setAllProjectsLoading(true);
+        try {
+          const pList = await getAllProjects();
+          if (!cancelled) {
+            setAllProjects(Array.isArray(pList) ? pList : []);
+          }
+        } catch (e) {
+          if (!cancelled) {
+            toast(`Ошибка: ${e.message}`, "error");
+          }
+        } finally {
+          if (!cancelled) {
+            setAllProjectsLoading(false);
           }
         }
       }
@@ -342,6 +428,37 @@ export function useTurboApp() {
     [canManage, toast]
   );
 
+  const askDeleteProject = useCallback(
+    (project) => {
+      if (!project?.id) {
+        toast("Не удалось определить проект для удаления", "error");
+        return;
+      }
+      const projectTitle = project.title || project.name || "проект";
+      setConfirm({
+        open: true,
+        title: "Удаление проекта",
+        message: `Точно удалить проект "${projectTitle}"?`,
+        confirmText: "Удалить",
+        action: async () => {
+          try {
+            await deleteProject(project.id);
+            setProjects((prev) => prev.filter((item) => item.id !== project.id));
+            setAllProjects((prev) =>
+              prev.filter((item) => item.id !== project.id)
+            );
+            toast("Проект удалён", "success");
+          } catch (e) {
+            toast(`Ошибка: ${e.message}`, "error");
+          } finally {
+            setConfirm((c) => ({ ...c, open: false }));
+          }
+        },
+      });
+    },
+    [toast]
+  );
+
   async function doConfirm() {
     if (confirm.action) {
       await confirm.action();
@@ -357,6 +474,8 @@ export function useTurboApp() {
     setCurrentUser(null);
     setUsers([]);
     setTasks([]);
+    setProjects([]);
+    setAllProjects([]);
     toast("Вы вышли из системы", "info");
     navigate(PATHS.LOGIN, { replace: true });
   }, [navigate, toast]);
@@ -370,14 +489,34 @@ export function useTurboApp() {
       setSession(data.token, me);
       setCurrentUser(me);
       toast("Вход выполнен", "success");
-      await refreshAll(1);
-      navigate(PATHS.USERS, { replace: true });
+      await refreshAll(1, me);
+      navigate(PATHS.TASKS, { replace: true });
     } catch (e) {
       toast(`Ошибка входа: ${e.message}`, "error");
     } finally {
       setLoginForm((f) => ({ ...f, loading: false }));
     }
   }, [loginForm.nickname, loginForm.password, navigate, toast, refreshAll]);
+
+  const doRegister = useCallback(
+    async (payload) => {
+      try {
+        await registerRequest(payload);
+        const data = await loginRequest(payload.nickname, payload.password);
+        setSession(data.token, data.user);
+        const me = await fetchMe();
+        setSession(data.token, me);
+        setCurrentUser(me);
+        toast("Регистрация выполнена", "success");
+        await refreshAll(1, me);
+        navigate(PATHS.TASKS, { replace: true });
+      } catch (e) {
+        toast(`Ошибка регистрации: ${e.message}`, "error");
+        throw e;
+      }
+    },
+    [navigate, refreshAll, toast]
+  );
 
   const updateFilters = useCallback((next) => {
     setFilters((f) => ({ ...f, ...next }));
@@ -396,8 +535,12 @@ export function useTurboApp() {
     [toast]
   );
 
+  const createProjectDraft = useCallback(() => {
+    toast("Создание проекта будет добавлено после подключения API", "info");
+  }, [toast]);
+
   const saveProfile = useCallback(
-    async (payload, photoChange = null) => {
+    async (payload, photoChange = null, passwordChange = null) => {
       try {
         let nextUser = currentUser;
         const data = await updateProfileRequest(payload);
@@ -420,14 +563,21 @@ export function useTurboApp() {
           nextUser = photoData?.user || photoData || nextUser;
         }
 
+        if (passwordChange) {
+          const passwordData = await changePasswordRequest(passwordChange);
+          if (passwordData?.token) {
+            setSession(passwordData.token, nextUser);
+          }
+        }
+
         try {
           nextUser = await syncCurrentUser();
         } catch {
           setSession(getToken() || "", nextUser);
           setCurrentUser(nextUser);
         }
-        await refreshAll(pagination.page);
-        toast("Профиль обновлён", "success");
+        await refreshAll(pagination.page, nextUser);
+        toast("Изменения сохранены", "success");
       } catch (e) {
         toast(`Ошибка обновления профиля: ${e.message}`, "error");
         throw e;
@@ -443,6 +593,15 @@ export function useTurboApp() {
   }, [isMobile]);
 
   const pageTitle = useMemo(() => {
+    if (location.pathname === PATHS.ALL_PROJECTS) {
+      return "Все проекты";
+    }
+    if (location.pathname === PATHS.PROJECTS) {
+      return "Мои проекты";
+    }
+    if (location.pathname === PATHS.CREATE_TASK) {
+      return "Создать задачу";
+    }
     if (location.pathname === PATHS.TASKS) {
       return "Задачи";
     }
@@ -462,8 +621,12 @@ export function useTurboApp() {
     setLoginForm,
     loading,
     tasksLoading,
+    projectsLoading,
+    allProjectsLoading,
     users,
     tasks,
+    projects,
+    allProjects,
     filters,
     pagination,
     stats,
@@ -478,13 +641,16 @@ export function useTurboApp() {
     openEdit,
     saveUser,
     askDelete,
+    askDeleteProject,
     askReset,
     doConfirm,
     closeConfirm,
     doLogout,
     doLogin,
+    doRegister,
     updateFilters,
     createTaskDraft,
+    createProjectDraft,
     saveProfile,
     toggleSidebar,
     toast,

@@ -5,7 +5,6 @@ import { PATHS } from "../../utils/paths.js";
 export function AppHeaderBar({
   user,
   title,
-  onAddClick,
   onLogout,
   onToggleSidebar,
 }) {
@@ -51,14 +50,6 @@ export function AppHeaderBar({
         </div>
       </div>
       <div className="tt-header__right">
-        <button
-          className="tt-header-add-button"
-          type="button"
-          onClick={onAddClick}
-        >
-          <span className="tt-header-add-button__icon">+</span>
-          <span>Войти в проект</span>
-        </button>
         <div
           className="tt-user-menu"
           onClick={() => setOpen((o) => !o)}

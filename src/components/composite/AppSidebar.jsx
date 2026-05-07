@@ -1,11 +1,17 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "../../utils/cn.js";
+import {
+  canViewAllProjectsPage,
+  canViewUsersPage,
+} from "../../utils/access.js";
 import { PATHS } from "../../utils/paths.js";
 
 const menuClass = ({ isActive }) =>
   cn("tt-menu-item", isActive && "tt-menu-item--active");
 
-export function AppSidebar({ open, mobile, onClose }) {
+export function AppSidebar({ user, open, mobile, onClose }) {
+  const canViewUsers = canViewUsersPage(user);
+  const canViewAllProjects = canViewAllProjectsPage(user);
   const handleNavigate = () => {
     if (mobile) {
       onClose();
@@ -38,14 +44,16 @@ export function AppSidebar({ open, mobile, onClose }) {
           )}
         </div>
         <nav className="tt-sidebar__menu">
-          <NavLink
-            className={menuClass}
-            end
-            onClick={handleNavigate}
-            to={PATHS.USERS}
-          >
-            Пользователи
-          </NavLink>
+          {canViewUsers && (
+            <NavLink
+              className={menuClass}
+              end
+              onClick={handleNavigate}
+              to={PATHS.USERS}
+            >
+              Пользователи
+            </NavLink>
+          )}
           <NavLink
             className={menuClass}
             end
@@ -54,6 +62,32 @@ export function AppSidebar({ open, mobile, onClose }) {
           >
             Задачи
           </NavLink>
+          <NavLink
+            className={menuClass}
+            end
+            onClick={handleNavigate}
+            to={PATHS.CREATE_TASK}
+          >
+            Создать задачу
+          </NavLink>
+          <NavLink
+            className={menuClass}
+            end
+            onClick={handleNavigate}
+            to={PATHS.PROJECTS}
+          >
+            Мои проекты
+          </NavLink>
+          {canViewAllProjects && (
+            <NavLink
+              className={menuClass}
+              end
+              onClick={handleNavigate}
+              to={PATHS.ALL_PROJECTS}
+            >
+              Все проекты
+            </NavLink>
+          )}
         </nav>
       </aside>
       {mobile && open && (

@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   last_name: "",
   department: "",
   job_title: "",
+  old_password: "",
   password: "",
   password2: "",
 };
@@ -130,6 +131,7 @@ export function ProfilePage({ user, onSave }) {
       last_name: user?.last_name || "",
       department: user?.department || "",
       job_title: user?.job_title || "",
+      old_password: "",
       password: "",
       password2: "",
     });
@@ -207,7 +209,23 @@ export function ProfilePage({ user, onSave }) {
   async function submit(e) {
     e.preventDefault();
     if (!canSubmit) return;
-    if (form.password && form.password !== form.password2) {
+
+    const wantsPasswordChange = Boolean(
+      form.old_password || form.password || form.password2
+    );
+    if (wantsPasswordChange && !form.old_password) {
+      setError("Введите текущий пароль");
+      return;
+    }
+    if (wantsPasswordChange && !form.password) {
+      setError("Введите новый пароль");
+      return;
+    }
+    if (wantsPasswordChange && !form.password2) {
+      setError("Повторите новый пароль");
+      return;
+    }
+    if (wantsPasswordChange && form.password !== form.password2) {
       setError("Пароли не совпадают");
       return;
     }
@@ -219,14 +237,22 @@ export function ProfilePage({ user, onSave }) {
       department: form.department.trim(),
       job_title: form.job_title.trim(),
     };
-    if (form.password) {
-      payload.password = form.password;
-    }
+    const passwordChange = wantsPasswordChange
+      ? {
+          old_password: form.old_password,
+          new_password: form.password,
+        }
+      : null;
 
     setSaving(true);
     try {
-      await onSave(payload, getPhotoChange());
-      setForm((prev) => ({ ...prev, password: "", password2: "" }));
+      await onSave(payload, getPhotoChange(), passwordChange);
+      setForm((prev) => ({
+        ...prev,
+        old_password: "",
+        password: "",
+        password2: "",
+      }));
       setPhotoDraft((prev) => {
         if (prev.previewUrl) {
           URL.revokeObjectURL(prev.previewUrl);
@@ -321,6 +347,14 @@ export function ProfilePage({ user, onSave }) {
               name="job_title"
               value={form.job_title}
               onChange={(e) => setField("job_title", e.target.value)}
+            />
+            <FloatingField
+              label="Текущий пароль"
+              type="password"
+              name="old_password"
+              autoComplete="current-password"
+              value={form.old_password}
+              onChange={(e) => setField("old_password", e.target.value)}
             />
             <FloatingField
               label="Новый пароль"

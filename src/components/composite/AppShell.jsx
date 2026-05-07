@@ -19,8 +19,12 @@ export function AppShell({
   setLoginForm,
   loading,
   tasksLoading,
+  projectsLoading,
+  allProjectsLoading,
   users,
   tasks,
+  projects,
+  allProjects,
   filters,
   pagination,
   stats,
@@ -35,13 +39,16 @@ export function AppShell({
   openEdit,
   saveUser,
   askDelete,
+  askDeleteProject,
   askReset,
   doConfirm,
   closeConfirm,
   doLogout,
   doLogin,
+  doRegister,
   updateFilters,
   createTaskDraft,
+  createProjectDraft,
   saveProfile,
   toggleSidebar,
   toast,
@@ -50,6 +57,7 @@ export function AppShell({
     <div className="tt-layout">
       {currentUser && (
         <AppSidebar
+          user={currentUser}
           open={sidebarOpen}
           mobile={isMobile}
           onClose={() => setSidebarOpen(false)}
@@ -62,7 +70,6 @@ export function AppShell({
           <AppHeaderBar
             user={currentUser}
             title={pageTitle}
-            onAddClick={() => toast("...", "info")}
             onLogout={doLogout}
             onToggleSidebar={toggleSidebar}
           />
@@ -78,6 +85,7 @@ export function AppShell({
             setLoginForm((f) => ({ ...f, password: e.target.value }))
           }
           onLogin={doLogin}
+          onRegister={doRegister}
           toast={toast}
           usersPageProps={{
             rows: users,
@@ -95,11 +103,27 @@ export function AppShell({
             onChangePage: (p) => void loadUsers(p),
           }}
           tasksPageProps={{
-            users,
-            currentUser,
             tasks,
             loading: tasksLoading,
+          }}
+          createTaskPageProps={{
+            users,
+            projects,
+            projectsLoading,
+            currentUser,
             onCreated: createTaskDraft,
+          }}
+          projectsPageProps={{
+            projects,
+            loading: projectsLoading,
+            onCreate: createProjectDraft,
+            onDelete: askDeleteProject,
+          }}
+          allProjectsPageProps={{
+            projects: allProjects,
+            loading: allProjectsLoading,
+            onCreate: createProjectDraft,
+            onDelete: askDeleteProject,
           }}
           profilePageProps={{
             user: currentUser,

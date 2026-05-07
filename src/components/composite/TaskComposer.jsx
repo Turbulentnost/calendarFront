@@ -6,13 +6,15 @@ import { Textarea } from "../ui/Textarea.jsx";
 
 const emptyForm = {
   title: "",
+  project: "",
   deadline: "",
   description: "",
   assignee: "",
+  participants: [],
   files: [],
 };
 
-const STEP_COUNT = 5;
+const STEP_COUNT = 6;
 const SCALE_RADIUS = 280;
 const SCALE_LABEL_OFFSET = 48;
 const SCALE_START_ANGLE = -72;
@@ -102,8 +104,18 @@ function getFileKind(fileName) {
   return "file";
 }
 
+function getProjectTitle(project) {
+  return project.title || project.name || project.login || "Без названия";
+}
+
+function getProjectDescription(project) {
+  return project.description || project.my_project_role || project.login || "";
+}
+
 export function TaskComposer({
   users,
+  projects = [],
+  projectsLoading = false,
   currentUser,
   onCreated,
 }) {
@@ -127,6 +139,26 @@ export function TaskComposer({
   const selectedAssignee = useMemo(
     () => users.find((user) => String(user.id) === String(assigneeId)),
     [assigneeId, users]
+  );
+  const participantOptions = useMemo(
+    () =>
+      users.filter(
+        (user) =>
+          String(user.id) !== String(assigneeId) &&
+          !form.participants.some((id) => String(id) === String(user.id))
+      ),
+    [assigneeId, form.participants, users]
+  );
+  const selectedParticipants = useMemo(
+    () =>
+      form.participants
+        .map((id) => users.find((user) => String(user.id) === String(id)))
+        .filter(Boolean),
+    [form.participants, users]
+  );
+  const selectedProject = useMemo(
+    () => projects.find((project) => String(project.id) === String(form.project)),
+    [form.project, projects]
   );
 
   function setField(key, value) {
@@ -165,11 +197,32 @@ export function TaskComposer({
     }, 420);
   }
 
+  function addParticipant(userId) {
+    if (!assigneeId) return;
+    setForm((f) => ({
+      ...f,
+      participants: f.participants.some((id) => String(id) === String(userId))
+        ? f.participants
+        : [...f.participants, userId],
+    }));
+  }
+
+  function removeParticipant(userId) {
+    setForm((f) => ({
+      ...f,
+      participants: f.participants.filter(
+        (id) => String(id) !== String(userId)
+      ),
+    }));
+  }
+
   function submit() {
-    if (!form.title.trim() || !assigneeId) return;
+    if (!form.title.trim() || !form.project || !assigneeId) return;
     onCreated({
       title: form.title.trim(),
+      project: form.project,
       assignee: assigneeId,
+      participants: form.participants,
       priority: "medium",
       deadline: form.deadline,
       description: form.description.trim(),
@@ -282,7 +335,7 @@ export function TaskComposer({
               }`}
               type="button"
               onClick={() => {
-                setField("assignee", "");
+                setForm((f) => ({ ...f, assignee: "", participants: [] }));
                 setAssigneeOpen(false);
               }}
             >
@@ -299,7 +352,13 @@ export function TaskComposer({
                 key={user.id}
                 type="button"
                 onClick={() => {
-                  setField("assignee", user.id);
+                  setForm((f) => ({
+                    ...f,
+                    assignee: user.id,
+                    participants: f.participants.filter(
+                      (id) => String(id) !== String(user.id)
+                    ),
+                  }));
                   setAssigneeOpen(false);
                 }}
               >
@@ -323,8 +382,8 @@ export function TaskComposer({
           aria-label="Шаги создания задачи"
           style={{
             "--task-flow-progress": `${scrollProgress * 100}%`,
-            "--task-flow-active-x": `${activeScalePoint.labelX}px`,
-            "--task-flow-active-y": `${activeScalePoint.labelY}px`,
+            "--task-flow-active-x": `${activeScalePoint.x}px`,
+            "--task-flow-active-y": `${activeScalePoint.y}px`,
           }}
         >
           <div className="tt-task-flow-scale">
@@ -337,13 +396,12 @@ export function TaskComposer({
             </svg>
             {scaleDots.map((dot, index) => (
               <button
-                className={`tt-task-flow-scale__dot ${
-                  activeStep === index ? "tt-task-flow-scale__dot--active" : ""
-                }`}
+                className="tt-task-flow-scale__dot"
                 key={index}
                 type="button"
                 onClick={() => scrollToStep(index)}
                 aria-label={`Перейти к шагу ${index + 1}`}
+                aria-current={activeStep === index ? "step" : undefined}
                 style={{
                   left: `${dot.x}px`,
                   top: `${dot.y}px`,
@@ -351,9 +409,22 @@ export function TaskComposer({
               />
             ))}
             <div className="tt-task-flow-scale__progress" />
-            <div className="tt-task-flow-scale__active">
-              {String(activeStep + 1).padStart(2, "0")}
-            </div>
+            {scaleDots.map((dot, index) => (
+              <div
+                className={`tt-task-flow-scale__number ${
+                  activeStep === index ? "tt-task-flow-scale__number--active" : ""
+                }`}
+                key={`number-${index}`}
+                style={{
+                  left: `${dot.labelX}px`,
+                  top: `${dot.labelY}px`,
+                }}
+                aria-hidden="true"
+              >
+                {String(index + 1).padStart(2, "0")}
+              </div>
+            ))}
+            <div className="tt-task-flow-scale__active-dot" />
           </div>
         </aside>
 
@@ -383,6 +454,58 @@ export function TaskComposer({
           <section className="tt-task-step">
             <div className="tt-task-step__content">
               <div className="tt-task-step__number">02</div>
+              <p className="tt-task-step__eyebrow">Проект</p>
+              <h2>К какому проекту относится задача?</h2>
+              <p>
+                Выберите рабочее пространство, в котором будет создана задача.
+              </p>
+              {projectsLoading && (
+                <div className="tt-task-projects-empty">Загрузка проектов...</div>
+              )}
+              {!projectsLoading && projects.length === 0 && (
+                <div className="tt-task-projects-empty">
+                  У вас пока нет доступных проектов
+                </div>
+              )}
+              {!projectsLoading && projects.length > 0 && (
+                <div className="tt-task-projects">
+                  {projects.map((project) => {
+                    const active =
+                      String(form.project) === String(project.id);
+                    return (
+                      <button
+                        className={`tt-task-project ${
+                          active ? "tt-task-project--active" : ""
+                        }`}
+                        key={project.id}
+                        type="button"
+                        onClick={() => setField("project", project.id)}
+                      >
+                        <span className="tt-task-project__icon">
+                          {(getProjectTitle(project)[0] || "P").toUpperCase()}
+                        </span>
+                        <span>
+                          <strong>{getProjectTitle(project)}</strong>
+                          {getProjectDescription(project) && (
+                            <small>{getProjectDescription(project)}</small>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedProject && (
+                <div className="tt-task-project-selected">
+                  Выбран проект: <strong>{getProjectTitle(selectedProject)}</strong>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="tt-task-step">
+            <div className="tt-task-step__content">
+              <div className="tt-task-step__number">03</div>
               <p className="tt-task-step__eyebrow">Описание</p>
               <h2>Что нужно сделать?</h2>
               <p>
@@ -401,7 +524,7 @@ export function TaskComposer({
 
           <section className="tt-task-step">
             <div className="tt-task-step__content">
-              <div className="tt-task-step__number">03</div>
+              <div className="tt-task-step__number">04</div>
               <p className="tt-task-step__eyebrow">Сроки</p>
               <h2>Когда нужен результат?</h2>
               <p>
@@ -502,7 +625,7 @@ export function TaskComposer({
 
           <section className="tt-task-step">
             <div className="tt-task-step__content">
-              <div className="tt-task-step__number">04</div>
+              <div className="tt-task-step__number">05</div>
               <p className="tt-task-step__eyebrow">Участники</p>
               <h2>Кто будет выполнять задачу?</h2>
               <p>
@@ -527,12 +650,57 @@ export function TaskComposer({
                   <b aria-hidden="true">⌄</b>
                 </button>
               </div>
+              <div
+                className={`tt-task-participants ${
+                  assigneeId ? "" : "tt-task-participants--disabled"
+                }`}
+              >
+                <div className="tt-task-participants__head">
+                  <span>Дополнительные участники</span>
+                  <small>
+                    {assigneeId
+                      ? "Можно добавить после выбора исполнителя"
+                      : "Сначала выберите исполнителя"}
+                  </small>
+                </div>
+                {selectedParticipants.length > 0 && (
+                  <div className="tt-task-participants__selected">
+                    {selectedParticipants.map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => removeParticipant(user.id)}
+                        title="Убрать участника"
+                      >
+                        <span>{user.nickname}</span>
+                        <b aria-hidden="true">×</b>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="tt-task-participants__options">
+                  {participantOptions.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      disabled={!assigneeId}
+                      onClick={() => addParticipant(user.id)}
+                    >
+                      <span>{user.nickname}</span>
+                      {user.department && <small>{user.department}</small>}
+                    </button>
+                  ))}
+                  {assigneeId && participantOptions.length === 0 && (
+                    <p>Нет доступных участников</p>
+                  )}
+                </div>
+              </div>
             </div>
           </section>
 
           <section className="tt-task-step">
             <div className="tt-task-step__content">
-              <div className="tt-task-step__number">05</div>
+              <div className="tt-task-step__number">06</div>
               <p className="tt-task-step__eyebrow">Файлы</p>
               <h2>Что понадобится для выполнения?</h2>
               <p>
@@ -580,7 +748,7 @@ export function TaskComposer({
                 <Button
                   variant="primary"
                   type="button"
-                  disabled={!form.title.trim() || !assigneeId}
+                  disabled={!form.title.trim() || !form.project || !assigneeId}
                   onClick={submit}
                 >
                   Создать задачу
